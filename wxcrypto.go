@@ -5,14 +5,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
-	"sort"
-	"strings"
 )
 
 var (
@@ -38,16 +34,6 @@ func New(token, appid, encodingAESKey string) (*WxCrypto, error) {
 		aesKey: aesKey,
 		iv:     aesKey[:16],
 	}, nil
-}
-
-// 计算消息体签名
-func (p *WxCrypto) makeMsgSignature(timestamp, nonce, encryptMsg string) string {
-	params := []string{timestamp, nonce, encryptMsg, p.token}
-	sort.Strings(params)
-
-	s := sha1.New()
-	io.Copy(s, strings.NewReader(strings.Join(params, "")))
-	return fmt.Sprintf("%x", s.Sum(nil))
 }
 
 // 加密数据
