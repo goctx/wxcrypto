@@ -1,7 +1,6 @@
 package wxcrypto
 
 import (
-	"encoding/base64"
 	"testing"
 )
 
@@ -23,7 +22,6 @@ func TestWxCrypto(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("加密后: %s", base64.StdEncoding.EncodeToString(cipherData))
 	// 解密
 	plainData, err := wx.Decrypt(cipherData)
 	if err != nil {
@@ -32,5 +30,4 @@ func TestWxCrypto(t *testing.T) {
 	if string(plainData) != msgText {
 		t.Fatal("解密明文错误")
 	}
-	t.Logf("解密后: %s", string(plainData))
 }
