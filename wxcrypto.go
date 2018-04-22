@@ -36,7 +36,7 @@ func New(token, appid, encodingAESKey string) (*WxCrypto, error) {
 	}, nil
 }
 
-// 加密数据
+// 加密 data为要加密的XML字符串转换后的字节数组
 func (p *WxCrypto) Encrypt(data []byte) ([]byte, error) {
 	var (
 		random16  = make([]byte, 16)
@@ -50,28 +50,27 @@ func (p *WxCrypto) Encrypt(data []byte) ([]byte, error) {
 	}
 	// 写入消息体
 	buf := new(bytes.Buffer)
-	err = binary.Write(buf, binary.LittleEndian, &random16)
-	err = binary.Write(buf, binary.LittleEndian, &msgLength)
-	err = binary.Write(buf, binary.LittleEndian, &data)
-	err = binary.Write(buf, binary.LittleEndian, &appid)
+	err = binary.Write(buf, binary.BigEndian, &random16)
+	err = binary.Write(buf, binary.BigEndian, &msgLength)
+	err = binary.Write(buf, binary.BigEndian, &data)
+	err = binary.Write(buf, binary.BigEndian, &appid)
 	if err != nil {
 		return nil, err
 	}
+	data = buf.Bytes()
+	data = PKCS7Encode(data, 32)
 	// 开始加密
-	if len(data)%aes.BlockSize != 0 {
-		return nil, errors.New("消息体长度错误")
-	}
 	block, err := aes.NewCipher(p.aesKey)
 	if err != nil {
 		return nil, err
 	}
 	mode := cipher.NewCBCEncrypter(block, p.iv)
 	cipherData := make([]byte, len(data))
-	mode.CryptBlocks(cipherData, buf.Bytes())
+	mode.CryptBlocks(cipherData, data)
 	return cipherData, nil
 }
 
-// 解密
+// 解密 data为微信传输过来的XML消息体Encrypt字段base64解码后的字节数组
 func (p *WxCrypto) Decrypt(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(p.aesKey)
 	if err != nil {
@@ -80,7 +79,7 @@ func (p *WxCrypto) Decrypt(data []byte) ([]byte, error) {
 
 	mode := cipher.NewCBCDecrypter(block, p.iv)
 	mode.CryptBlocks(data, data)
-	data = pkcs7Decode(data)
+	data = PKCS7Decode(data)
 	// 去除随机的16字节
 	data = data[16:]
 	// 解码消息
@@ -88,11 +87,11 @@ func (p *WxCrypto) Decrypt(data []byte) ([]byte, error) {
 		msgLength int32
 		reader    = bytes.NewReader(data)
 	)
-	err = binary.Read(reader, binary.LittleEndian, &msgLength)
+	err = binary.Read(reader, binary.BigEndian, &msgLength)
 	msg := make([]byte, int(msgLength))
-	err = binary.Read(reader, binary.LittleEndian, &msg)
-	appid := make([]byte, 4)
-	err = binary.Read(reader, binary.LittleEndian, &appid)
+	err = binary.Read(reader, binary.BigEndian, &msg)
+	appid := make([]byte, len(p.appid))
+	err = binary.Read(reader, binary.BigEndian, &appid)
 	if err != nil {
 		return nil, err
 	}
