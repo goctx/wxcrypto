@@ -1,5 +1,7 @@
 # 微信开放平台加解密实现
 
+![build](https://api.travis-ci.org/goctx/wxcrypto.svg?branch=master)
+
 本库只实现`数据加解密`，XML解析和base64编码请自行实现
 
 ## 安装
